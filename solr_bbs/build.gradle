@@ -27,6 +27,8 @@ dependencies {
     implementation 'javax.servlet:jstl'
     // https://mvnrepository.com/artifact/commons-io/commons-io
     implementation 'commons-io:commons-io:2.6'
+    // https://mvnrepository.com/artifact/org.apache.solr/solr-solrj
+    implementation group: 'org.apache.solr', name: 'solr-solrj', version: '8.8.1'
     compileOnly 'org.projectlombok:lombok'
     compile 'org.springframework.boot:spring-boot-devtools'
     compile 'org.modelmapper:modelmapper:2.3.0'
