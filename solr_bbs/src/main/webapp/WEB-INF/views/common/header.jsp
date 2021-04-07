@@ -66,10 +66,10 @@
                     <div class="modal-body" style="padding:30px;">
                         <div class="form-group">
                             <label for="memberId" class="col-form-label col-auto">이름</label>
-                            <input type="text" class="form-control" name="name" required>
+                            <input type="text" class="form-control" name="memberName" required>
 
                             <label for="memberId" class="col-form-label col-auto">이메일</label>
-                            <input type="email" class="form-control" name="email" required>
+                            <input type="email" class="form-control" name="memberEmail" required>
 
                             <label for="password" class="col-form-label col-auto">비밀번호</label>
                             <input type="password" class="form-control" name="password" required>
@@ -92,9 +92,10 @@
             $.ajax({
                 url:"${pageContext.request.contextPath}/member",
                 data: formData,
+                dataType: "json",
                 type:"POST",
                 processData: false,
-                contentType: false,
+                contentType : false,
                 success: data => {
                     if(data.complete){
                         alert("성공적으로 가입되었습니다.");

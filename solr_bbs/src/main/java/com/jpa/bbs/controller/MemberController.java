@@ -6,10 +6,7 @@ import com.jpa.bbs.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.support.SessionStatus;
 
 import javax.servlet.http.HttpSession;
@@ -25,7 +22,7 @@ public class MemberController {
 
     //회원 가입
     @PostMapping("/member")
-    public Map<String, Object> register(@RequestParam MemberDTO memberDTO){
+    public Map<String, Object> register(MemberDTO memberDTO){
         Map<String, Object> result = new HashMap<String, Object>();
 
         try{
@@ -42,7 +39,7 @@ public class MemberController {
             }
 
         }catch(Exception e){
-            throw new RuntimeException("회원가입 오류");
+            e.printStackTrace();
         }
 
         return result;
