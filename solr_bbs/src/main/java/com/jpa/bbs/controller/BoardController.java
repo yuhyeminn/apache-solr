@@ -6,6 +6,7 @@ import com.jpa.bbs.dto.BoardDTO;
 import com.jpa.bbs.service.BoardService;
 import com.sun.org.apache.xpath.internal.operations.Mod;
 import lombok.RequiredArgsConstructor;
+import org.apache.solr.common.SolrInputDocument;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -20,9 +21,8 @@ import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import com.jpa.bbs.common.SolrJDriver;
 
 @Controller
 @RequiredArgsConstructor
@@ -114,6 +114,21 @@ public class BoardController {
             //board 등록
             BoardDTO enrolledBoard = boardService.enrollBoard(board);
 
+            //SolrJ 색인 문서 등록---------------------------
+            SolrInputDocument solrDoc = new SolrInputDocument();
+            solrDoc.addField("id", board.getBoardNo());
+            solrDoc.addField("title", board.getBoardTitle());
+            solrDoc.addField("writer", board.getBoardWriter());
+            solrDoc.addField("board", board.getBoardContent());
+            solrDoc.addField("date", board.getEnrollDate());
+
+            Collection<SolrInputDocument> solrDocs = new ArrayList<SolrInputDocument>();
+            solrDocs.add(solrDoc);
+
+            SolrJDriver.solr.add(solrDocs);
+            SolrJDriver.solr.commit();
+            //----------------------------------------------
+
             System.out.println(enrolledBoard.toString());
 
         }catch(Exception e){
@@ -126,7 +141,7 @@ public class BoardController {
     //게시글 수정
     @PostMapping(value = "/board/edit/{boardNo}")
     public String boardEdit(@PathVariable("boardNo") long boardNo, BoardDTO editedBoard,
-                                         @RequestParam String oldOriginalFileName, @RequestParam String oldRenamedFileName, @RequestParam boolean del_flag,
+                                         @RequestParam String oldOriginalFileName, @RequestParam String oldRenamedFileName, boolean del_flag,
                                          MultipartHttpServletRequest request){
         try{
             //기존 게시글 객체
@@ -169,6 +184,20 @@ public class BoardController {
             //업데이트
             BoardDTO updatedBoard = boardService.updateBoard(olderBoard);
 
+            //SolrJ 색인 문서 수정---------------------------
+            SolrInputDocument solrDoc = new SolrInputDocument();
+            solrDoc.addField("id", editedBoard.getBoardNo());
+            solrDoc.addField("title", editedBoard.getBoardTitle());
+            solrDoc.addField("writer", editedBoard.getBoardWriter());
+            solrDoc.addField("board", editedBoard.getBoardContent());
+            solrDoc.addField("date", editedBoard.getEnrollDate());
+
+            Collection<SolrInputDocument> solrDocs = new ArrayList<SolrInputDocument>();
+            solrDocs.add(solrDoc);
+
+            SolrJDriver.solr.add(solrDocs);
+            SolrJDriver.solr.commit();
+            //----------------------------------------------
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -182,6 +211,9 @@ public class BoardController {
 
             boardService.deleteBoard(boardNo);
 
+            //SolrJ 색인 문서 삭제
+            SolrJDriver.solr.deleteById(String.valueOf(boardNo));
+            SolrJDriver.solr.commit();
 
         }catch (Exception e){
             e.printStackTrace();
