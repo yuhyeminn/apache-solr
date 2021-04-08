@@ -4,7 +4,7 @@
 >
 > - *Solr Admin* : http://localhost:8983/solr
 
-
+</br>
 
 ### 1. Solr 설치
 
@@ -44,7 +44,7 @@ bin\solr create -c 컬렉션이름 -d server\solr\configsets\_default
 
 6. Solr Admin에서 Core Selector 목록을 확인하여 해당 컬렉션이 생성되었는지 확인
 
-
+</br>
 
 ### 2. Schema 생성
 
@@ -80,7 +80,7 @@ bin\solr restart -p 8983
    - 왼쪽메뉴에서 schema 선택
    - Field 목록 확인 - board, date, text, title, writer
 
-
+</br>
 
 #### 주요 개념
 
@@ -103,7 +103,7 @@ bin\solr restart -p 8983
   - Field의 값을 다른 Field로 복사함
   - 검색 성능 향상 효과를 얻을 수 있음
 
-
+</br>
 
 ### 3. Solr 적용하기
 
@@ -124,12 +124,72 @@ bin\solr restart -p 8983
    import org.apache.solr.client.solrj.SolrClient;
    import org.apache.solr.client.solrj.impl.HttpSolrClient;
    
-   public class SolrDriver {
+   public class SolrJDriver {
        // board Collection만 사용할 것이기 때문에 미리 지정함
-       public static String url = "https://localhost:8983/solr/board";
+       public static String url = "http://localhost:8983/solr/board";
        public static SolrClient solr = new HttpSolrClient.Builder(url).build();
    }
    ~~~
 
 3. SolrJ 이용하여 Solr에 접속할 준비 완료
 
+</br>
+
+### 4. SolrJ를 이용한 색인 제어
+
+1. 색인 문서 추가, 수정
+
+   - 게시글 등록 메서드에 색인 문서 추가하는 코드 삽입
+
+   ```java
+   // BoardDTO board
+   SolrInputDocument solrDoc = new SolrInputDocument();
+   solrDoc.addField("id", board.getBoardNo());
+   solrDoc.addField("title", board.getBoardTitle());
+   solrDoc.addField("writer", board.getBoardWriter());
+   solrDoc.addField("board", board.getBoardContent());
+   solrDoc.addField("date", board.getEnrollDate());
+   
+   Collection<SolrInputDocument> solrDocs = new ArrayList<SolrInputDocument>();
+   solrDocs.add(solrDoc);
+   
+   SolrJDriver.solr.add(solrDocs);
+   SolrJDriver.solr.commit();
+   ```
+
+2. 색인 문서 수정
+
+   - 같은 id의 문서는 대체되기때문에 색인 문서 추가 코드와 동일
+
+3. 색인 문서 삭제
+
+   - 게시글 삭제 메서드에 색인 삭제하는 코드 삽입
+
+   ```java
+   // long boardNo
+   // SolrJDriver.solr.deleteById(String id)
+   SolrJDriver.solr.deleteById(String.valueOf(boardNo));
+   SolrJDriver.solr.commit();
+   ```
+
+4. 게시글 등록, 수정, 삭제 후 *Solr Admin* 의 Query 기능을 이용하여 색인된 문서 조회
+
+</br>
+
+#### 주요 개념
+
+- 색인 문서 수정
+  - Solr에 색인 문서를 추가할 때에는 색인 문서의 id를 지정함
+  - 만약 해당 id의 문서가 없다면 새 색인 문서를 생성하고, 있다면 새로 입력되는 문서로 대체함
+- `SolrInputDocument`
+  - Lucene에 담길 문서 클래스
+  - `addField()`를 이용하여 내용을 입력함
+    - managed-schema에서 정의한 Field와 일치해야 함
+- `solr.add()`
+  - Lucene에 입력 혹은 수정할 문서를 Collection으로 전달함
+- `solr.commit()`
+  - 추가, 수정, 삭제 등을 진행한 후 commit 명령을 전달해야 검색 결과에 반영됨
+  - RDBMS와 마찬가지로 작업 중 오류가 발생하거나, 잘못된 요청을 했다면 `solr.rollback()`이용하여 rollback 명령 전달
+- `solr.deleteById()`
+  - 문서의 id 필드를 이용하여 특정 문서를 색인에서 삭제함
+  - `deleteByQuery(QUERY_STATEMENT)` : QUERY_STATEMENT에 해당하는 모든 문서 삭제
