@@ -6,6 +6,9 @@ import com.jpa.bbs.dto.BoardDTO;
 import com.jpa.bbs.service.BoardService;
 import com.sun.org.apache.xpath.internal.operations.Mod;
 import lombok.RequiredArgsConstructor;
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +41,28 @@ public class BoardController {
             Page<BoardDTO> boardList = boardService.getAllBoard(pageable);
             model.addAttribute("boardList", boardList);
 
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return "board/main";
+    }
+
+    @GetMapping("/board/{keyword}/search")
+    public String boardSearch(@PathVariable("keyword") String keyword, Model model){
+        try{
+            if(!"".equals(keyword)){
+                //SolrQuery : 질의문 생성하는 클래스
+                SolrQuery query = new SolrQuery();
+                // text 필드 내에서 검색
+                query.setQuery("text:"+keyword);
+                
+                // 이미 URL에 Collection이 지정되었기 때문에 .(현재위치)를 입력
+                QueryResponse responseSolr = SolrJDriver.solr.query(".", query);
+                SolrDocumentList results = responseSolr.getResults();
+
+                model.addAttribute("keyword", keyword);
+                model.addAttribute("searchResult", results.toArray());
+            }
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -115,21 +140,7 @@ public class BoardController {
             BoardDTO enrolledBoard = boardService.enrollBoard(board);
 
             //SolrJ 색인 문서 등록---------------------------
-            SolrInputDocument solrDoc = new SolrInputDocument();
-            solrDoc.addField("id", board.getBoardNo());
-            solrDoc.addField("title", board.getBoardTitle());
-            solrDoc.addField("writer", board.getBoardWriter());
-            solrDoc.addField("board", board.getBoardContent());
-            solrDoc.addField("date", board.getEnrollDate());
-
-            Collection<SolrInputDocument> solrDocs = new ArrayList<SolrInputDocument>();
-            solrDocs.add(solrDoc);
-
-            SolrJDriver.solr.add(solrDocs);
-            SolrJDriver.solr.commit();
-            //----------------------------------------------
-
-            System.out.println(enrolledBoard.toString());
+            enrollSolrDoc(enrolledBoard);
 
         }catch(Exception e){
             e.printStackTrace();
@@ -184,20 +195,9 @@ public class BoardController {
             //업데이트
             BoardDTO updatedBoard = boardService.updateBoard(olderBoard);
 
-            //SolrJ 색인 문서 수정---------------------------
-            SolrInputDocument solrDoc = new SolrInputDocument();
-            solrDoc.addField("id", editedBoard.getBoardNo());
-            solrDoc.addField("title", editedBoard.getBoardTitle());
-            solrDoc.addField("writer", editedBoard.getBoardWriter());
-            solrDoc.addField("board", editedBoard.getBoardContent());
-            solrDoc.addField("date", editedBoard.getEnrollDate());
+            // Solr Document 수정
+            enrollSolrDoc(updatedBoard);
 
-            Collection<SolrInputDocument> solrDocs = new ArrayList<SolrInputDocument>();
-            solrDocs.add(solrDoc);
-
-            SolrJDriver.solr.add(solrDocs);
-            SolrJDriver.solr.commit();
-            //----------------------------------------------
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -228,5 +228,27 @@ public class BoardController {
         //재생성된 파일 이름
         String renamedFileName = sdf.format(new Date()) + "_" + rndNum + ext;
         return renamedFileName;
+    }
+
+    public void enrollSolrDoc(BoardDTO board) throws Exception{
+        // Date 포맷 변경
+        SimpleDateFormat fm = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String to = fm.format(board.getEnrollDate());
+
+        // SolrJ 색인 문서 등록 및 수정---------------------------
+        // FIXME : file 관련 필드 없음. 임시로 회원 이름을 writer로 설정
+        SolrInputDocument solrDoc = new SolrInputDocument();
+        solrDoc.addField("id", board.getBoardNo());
+        solrDoc.addField("title", board.getBoardTitle());
+        solrDoc.addField("writer", board.getBoardWriter().getMemberName());
+        solrDoc.addField("board", board.getBoardContent());
+        solrDoc.addField("date", board.getEnrollDate());
+
+        Collection<SolrInputDocument> solrDocs = new ArrayList<SolrInputDocument>();
+        solrDocs.add(solrDoc);
+
+        SolrJDriver.solr.add(solrDocs);
+        SolrJDriver.solr.commit();
+        
     }
 }

@@ -14,13 +14,18 @@ header div#header-container {height:100px;}
 header div#header-container h2 	{margin:30px 10px 0px 10px;}
 
 /********** content **********/
-section#content		{min-height:600px;margin:30px auto;padding:1rem 3rem;}
+section#content		{min-height:600px;margin:30px auto;padding:1rem 5rem;}
 .navbar{justify-content: space-between !important; padding:.5rem 2rem}
 /*board*/
 .table thead th, .table tbody tr{text-align: center!important;}
 
 /*login form*/
 
+/*page bar*/
+.pager li{padding: 10px;}
+.pager .previous{float: left;}
+.pager .next{float:right;}
+.pager li a{text-decoration: none;color:black;}
 
 /*footer*/
 footer		{background-color:#f8f9fa; background-clip:content-box; clear:both; height:95px; text-align:center;}
