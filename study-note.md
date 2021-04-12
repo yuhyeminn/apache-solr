@@ -6,7 +6,7 @@
 
 </br>
 
-### 1. Solr 설치
+## [1] Solr 설치
 
 1. Solr 다운로드
 
@@ -46,7 +46,7 @@ bin\solr create -c 컬렉션이름 -d server\solr\configsets\_default
 
 </br>
 
-### 2. Schema 생성
+## [2] Schema 생성
 
 #### managed-schema 설정
 
@@ -105,7 +105,7 @@ bin\solr restart -p 8983
 
 </br>
 
-### 3. Solr 적용하기
+## [3] Solr 적용하기
 
 1. 프로젝트에 solr dependency 추가
 
@@ -135,7 +135,7 @@ bin\solr restart -p 8983
 
 </br>
 
-### 4. SolrJ를 이용한 색인 제어
+## [4] SolrJ를 이용한 색인 제어
 
 1. 색인 문서 추가, 수정
 
@@ -193,3 +193,66 @@ bin\solr restart -p 8983
 - `solr.deleteById()`
   - 문서의 id 필드를 이용하여 특정 문서를 색인에서 삭제함
   - `deleteByQuery(QUERY_STATEMENT)` : QUERY_STATEMENT에 해당하는 모든 문서 삭제
+
+</br>
+
+## [5] SolrJ를 이용한 검색
+
+1. 검색 폼 만들기
+
+2. [BoardController.java](https://github.com/yuhyeminn/solr/blob/master/solr_bbs/src/main/java/com/jpa/bbs/controller/BoardController.java)에 아래 코드 추가
+
+   ```java
+    @GetMapping("/board/{keyword}/search")
+       public String boardSearch(@PathVariable("keyword") String keyword, Model model){
+           try{
+               if(!"".equals(keyword)){
+                   //SolrQuery : 질의문 생성하는 클래스
+                   SolrQuery query = new SolrQuery();
+                   // text 필드 내에서 검색
+                   query.setQuery("text:"+keyword);
+                   
+                   // 이미 URL에 Collection이 지정되었기 때문에 .(현재위치)를 입력
+                   QueryResponse responseSolr = SolrJDriver.solr.query(".", query);
+                   SolrDocumentList results = responseSolr.getResults();
+   
+                   model.addAttribute("keyword", keyword);
+                   model.addAttribute("searchResult", results.toArray());
+               }
+           }catch (Exception e){
+               e.printStackTrace();
+           }
+           return "board/main";
+       }
+   ```
+
+   - SolrQuery 
+     - 질의문을 생성하는 클래스
+     - 질의문 관련하여 다양한 속성 설정 가능
+   - `SolrQuery.setQuery(String query)`
+     - 필수로 정의해야하는 속성
+     - 예제 코드에서는 text Field 내에서 검색되도록 구현함
+   - `solr.query(".", query)`
+     - 첫 번째 파라미터는 검색할 Collection 지정
+       - 이미 URL에 `board` Collection이 지정되었기 때문에 `.(현재위치)`로 설정
+     - 두 번째 파라미터는 속성이 설정된 SolrQuery 객체 전달
+     - 질의가 완료되면 QueryResponse 객체 반환
+
+3. [main.jsp](https://github.com/yuhyeminn/solr/blob/master/solr_bbs/src/main/webapp/WEB-INF/views/board/main.jsp)에 검색 결과 출력하는 코드 추가
+
+   ```jsp
+   <!-- 검색 결과 -->
+   <c:forEach var="list" items="${searchResult}">
+     <tr class="board_detail" id="${list.id}">
+        <th scope="row">${list.id}</th>
+        <td>${list.title}</td>
+        <td>${list.writer}</td>
+        <td>${list.date}</td>
+     </tr>
+   </c:forEach>
+   ```
+
+4. 결과 확인
+
+   - 검색어가 많이 포함된 게시글부터 내림차순으로 정렬됨
+
